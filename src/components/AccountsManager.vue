@@ -10,22 +10,12 @@
         >
       </div>
     </div>
-    <div class="manager-hint">
-      <el-icon class="hint-icon" :size="20" color="#409EFF">
-        <QuestionFilled />
-      </el-icon>
-      <span class="hint-text">
-        Для указания нескольких меток для одной пары логин/пароль используйте разделитель ;
-      </span>
-    </div>
+
+    <HintBox />
 
     <el-divider />
 
-    <div v-if="accounts.length === 0" class="empty-state">
-      <el-empty description="Учетные записи отсутствуют" :image-size="100">
-        <el-button type="primary" @click="addNewAccount"> Создать первую учетную запись </el-button>
-      </el-empty>
-    </div>
+    <EmptyState v-if="accounts.length === 0" @create="addNewAccount" />
 
     <div v-else class="accounts-list">
       <AccountItem
@@ -41,9 +31,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Plus, QuestionFilled } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { useAccountsStore, type Account } from '@/stores/accounts'
 import AccountItem from './AccountItem.vue'
+import HintBox from './HintBox.vue'
+import EmptyState from './EmptyState.vue'
 
 const store = useAccountsStore()
 
@@ -94,30 +86,11 @@ const handleUpdateAccount = (id: number, updates: Partial<Account>) => {
   align-items: center;
 }
 
-.manager-hint {
-  display: flex;
-  background: var(--el-bg-color);
-  padding: 10px;
-  border-radius: 8px;
-  color: var(--el-text-color-primary);
-}
-
-.hint-icon {
-  margin-right: 20px;
-}
-
 .manager-header h2 {
   margin: 0;
   color: var(--el-text-color-primary);
   font-size: 22px;
   font-weight: 600;
-}
-
-.empty-state {
-  margin-top: 40px;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  padding: 40px 20px;
 }
 
 .accounts-list {

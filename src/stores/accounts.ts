@@ -67,14 +67,5 @@ export const useAccountsStore = defineStore('accounts', {
     removeAccount(id: number) {
       this.accounts = this.accounts.filter((account) => account.id !== id)
     },
-
-    initialize() {
-      if (!this.accounts) {
-        this.accounts = []
-      }
-      if (!this.nextId) {
-        this.nextId = 1
-      }
-    },
   },
 })
