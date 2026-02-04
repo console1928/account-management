@@ -8,11 +8,11 @@
       <div class="form-field">
         <label class="field-label">Метки</label>
         <el-input
-          v-model="localAccount.label"
-          placeholder="Labels (optional)"
+          v-model="labelInput"
+          placeholder="Введите метки (необязательно)"
           maxlength="50"
           :class="{ 'is-error': errors.label }"
-          @blur="validateField('label')"
+          @blur="handleLabelBlur"
         />
         <span v-if="errors.label" class="error-message">{{ errors.label }}</span>
       </div>
@@ -21,7 +21,7 @@
         <label class="field-label">Тип записи</label>
         <el-select
           v-model="localAccount.type"
-          placeholder="Select type"
+          placeholder="Выберите тип"
           class="select-input"
           :class="{ 'is-error': errors.type }"
           @change="handleTypeChange"
@@ -35,10 +35,10 @@
         <label class="field-label">Логин</label>
         <el-input
           v-model="localAccount.username"
-          placeholder="Enter username"
+          placeholder="Введите логин"
           maxlength="100"
           :class="{ 'is-error': errors.username }"
-          @blur="validateField('username')"
+          @blur="handleUsernameBlur"
         />
         <span v-if="errors.username" class="error-message">{{ errors.username }}</span>
       </div>
@@ -48,11 +48,11 @@
         <el-input
           v-model="localAccount.password"
           type="password"
-          placeholder="Enter password"
+          placeholder="Введите пароль"
           maxlength="100"
           show-password
           :class="{ 'is-error': errors.password }"
-          @blur="validateField('password')"
+          @blur="handlePasswordBlur"
         />
         <span v-if="errors.password" class="error-message">{{ errors.password }}</span>
       </div>
@@ -69,9 +69,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
-import { useAccountsStore, type Account, type AccountType } from '@/stores/accounts'
+import { type Account, type AccountType, type LabelTag } from '@/stores/accounts'
 
 const props = defineProps<{
   account: Account
@@ -80,13 +80,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   delete: [id: number]
   update: [id: number, account: Partial<Account>]
-  validate: [id: number]
 }>()
 
-const store = useAccountsStore()
+const labelInput = ref('')
 
 const localAccount = ref<Partial<Account>>({
-  label: props.account.label,
   type: props.account.type,
   username: props.account.username,
   password: props.account.password,
@@ -95,23 +93,36 @@ const localAccount = ref<Partial<Account>>({
 const errors = ref<Record<string, string>>({})
 const touchedFields = ref<Set<string>>(new Set())
 
+const initializeLabelInput = () => {
+  if (props.account.label && props.account.label.length > 0) {
+    labelInput.value = props.account.label.map((tag) => tag.text).join(';')
+  } else {
+    labelInput.value = ''
+  }
+}
+
+const handleLabelBlur = () => {
+  touchedFields.value.add('label')
+
+  const tags: LabelTag[] = labelInput.value
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+    .map((text) => ({ text }))
+
+  const newLabel = tags.length > 0 ? tags : null
+  localAccount.value.label = newLabel
+  emit('update', props.account.id, { label: newLabel })
+}
+
 const validateField = (field: string) => {
   touchedFields.value.add(field)
-
   errors.value[field] = ''
 
   switch (field) {
-    case 'label':
-      if (localAccount.value.label && localAccount.value.label.length > 50) {
-        errors.value[field] = 'Не более 50 символов'
-      }
-      break
-
     case 'username':
       if (!localAccount.value.username || localAccount.value.username.trim() === '') {
         errors.value[field] = 'Обязательное поле'
-      } else if (localAccount.value.username.length > 100) {
-        errors.value[field] = 'Не более 100 символов'
       }
       break
 
@@ -119,14 +130,10 @@ const validateField = (field: string) => {
       if (localAccount.value.type === 'local') {
         if (!localAccount.value.password || localAccount.value.password.trim() === '') {
           errors.value[field] = 'Обязательное поле'
-        } else if (localAccount.value.password.length > 100) {
-          errors.value[field] = 'Не более 100 символов'
         }
       }
       break
   }
-
-  emit('validate', props.account.id)
 }
 
 const handleTypeChange = (value: AccountType) => {
@@ -137,33 +144,25 @@ const handleTypeChange = (value: AccountType) => {
     errors.value.password = ''
   }
 
-  validateField('username')
-
-  if (value === 'local') {
-    validateField('password')
-  }
-
   emit('update', props.account.id, {
     type: value,
     password: value === 'ldap' ? null : localAccount.value.password,
   })
 }
 
+const handleUsernameBlur = () => {
+  validateField('username')
+  emit('update', props.account.id, { username: localAccount.value.username })
+}
+
+const handlePasswordBlur = () => {
+  validateField('password')
+  emit('update', props.account.id, { password: localAccount.value.password })
+}
+
 const handleDelete = () => {
   emit('delete', props.account.id)
 }
-
-watch(
-  localAccount,
-  (newVal) => {
-    emit('update', props.account.id, {
-      label: newVal.label,
-      username: newVal.username,
-      password: newVal.password,
-    })
-  },
-  { deep: true },
-)
 
 watch(
   () => props.account,
@@ -174,9 +173,14 @@ watch(
       username: newAccount.username,
       password: newAccount.password,
     }
+    initializeLabelInput()
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  initializeLabelInput()
+})
 </script>
 
 <style scoped>
@@ -256,10 +260,6 @@ watch(
 
 .select-input {
   width: 100%;
-}
-
-:deep(.el-select__wrapper) {
-  padding: 6px 28px 6px 12px;
 }
 
 @media (max-width: 1200px) {

@@ -34,7 +34,6 @@
         :account="account"
         @delete="handleDeleteAccount"
         @update="handleUpdateAccount"
-        @validate="handleValidateAccount"
       />
     </div>
   </div>
@@ -65,10 +64,6 @@ const handleDeleteAccount = (id: number) => {
 
 const handleUpdateAccount = (id: number, updates: Partial<Account>) => {
   store.updateAccount(id, updates)
-}
-
-const handleValidateAccount = (id: number) => {
-  store.validateAccount(id)
 }
 </script>
 
@@ -104,6 +99,7 @@ const handleValidateAccount = (id: number) => {
   background: var(--el-bg-color);
   padding: 10px;
   border-radius: 8px;
+  color: var(--el-text-color-primary);
 }
 
 .hint-icon {
